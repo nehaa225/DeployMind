@@ -1,0 +1,33 @@
+name: DeployMind Risk Gatekeeper
+
+on:
+  pull_request:
+    branches: [ main, master ]
+  deployment_status:
+
+jobs:
+  deploymind-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install DeployMind Agent
+        run: |
+          pip install -r backend/requirements.txt
+
+      - name: Run DeployMind Risk Analysis Gate
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          python -m backend.cli gate \
+            --service "${{ github.event.repository.name }}" \
+            --version "${{ github.sha }}" \
+            --commit "${{ github.sha }}" \
+            --summary "${{ github.event.pull_request.title || 'CI Pipeline Execution' }}" \
+            --fail-on-high-risk
